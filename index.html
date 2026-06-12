@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>研压树洞｜AI 情绪疏解助手</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <nav class="topbar" aria-label="主导航">
+        <button class="brand" data-target="welcome" type="button" aria-label="返回欢迎页">
+          <span class="brand-mark" aria-hidden="true">研</span>
+          <span>研压树洞</span>
+        </button>
+        <div class="step-tabs" aria-label="页面进度">
+          <button class="step-tab active" data-target="welcome" type="button">欢迎</button>
+          <button class="step-tab" data-target="intent" type="button">选择</button>
+          <button class="step-tab" data-target="chat" type="button">对话</button>
+          <button class="step-tab" data-target="summary" type="button">整理</button>
+          <button class="step-tab" data-target="feedback" type="button">反馈</button>
+        </div>
+      </nav>
+
+      <main>
+        <section class="screen welcome-screen active" id="welcome" aria-labelledby="welcome-title">
+          <div class="hero-copy">
+            <p class="eyebrow">面向研究生的 AI 情绪疏解助手</p>
+            <h1 id="welcome-title">研压树洞</h1>
+            <p class="hero-line">把科研、导师和未来里的真实感受先放下来一点，从被听见开始，慢慢找回可以行动的一小步。</p>
+            <p class="boundary">这是情绪支持工具，不替代心理咨询、精神科诊疗或紧急救助。</p>
+            <button class="primary-action" data-target="intent" type="button">开始对话</button>
+          </div>
+        </section>
+
+        <section class="screen intent-screen" id="intent" aria-labelledby="intent-title">
+          <div class="section-head">
+            <p class="eyebrow">选择此刻最需要的支持</p>
+            <h2 id="intent-title">不用先想清楚原因，先选一个入口。</h2>
+          </div>
+          <div class="intent-grid" role="list">
+            <button class="intent-card" data-mode="listen" type="button" role="listitem">
+              <span class="intent-icon" aria-hidden="true">听</span>
+              <strong>我想被听见</strong>
+              <span>少建议，多倾听，先承接你最堵的那部分。</span>
+            </button>
+            <button class="intent-card" data-mode="understand" type="button" role="listitem">
+              <span class="intent-icon" aria-hidden="true">解</span>
+              <strong>我想理解自己</strong>
+              <span>帮助你命名情绪，拆出触发事件和压力来源。</span>
+            </button>
+            <button class="intent-card" data-mode="action" type="button" role="listitem">
+              <span class="intent-icon" aria-hidden="true">行</span>
+              <strong>我想知道接下来怎么办</strong>
+              <span>只找一个低负担、可执行的下一步。</span>
+            </button>
+            <button class="intent-card urgent" data-mode="safety" type="button" role="listitem">
+              <span class="intent-icon" aria-hidden="true">安</span>
+              <strong>我现在状态很糟</strong>
+              <span>优先安全支持，引导你联系现实中的帮助。</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="screen chat-screen" id="chat" aria-labelledby="chat-title">
+          <div class="chat-layout">
+            <aside class="mode-panel" aria-label="模式与场景">
+              <p class="panel-label">当前模式</p>
+              <h2 id="chat-title">我想被听见</h2>
+              <div class="mode-buttons">
+                <button class="mode-button active" data-mode="listen" type="button">倾听</button>
+                <button class="mode-button" data-mode="understand" type="button">理解</button>
+                <button class="mode-button" data-mode="action" type="button">行动</button>
+                <button class="mode-button safety" data-mode="safety" type="button">求助</button>
+              </div>
+
+              <div class="scene-panel" aria-live="polite">
+                <p class="panel-label">场景识别</p>
+                <div class="scene-tags" id="sceneTags">
+                  <span class="scene-tag active">尚未识别</span>
+                </div>
+                <p class="scene-note" id="sceneNote">输入你的处境后，我会识别它更接近科研、导师还是未来相关场景。</p>
+              </div>
+
+              <button class="secondary-action" id="finishChat" type="button">生成情绪整理卡片</button>
+            </aside>
+
+            <div class="chat-panel">
+              <div class="messages" id="messages" aria-live="polite"></div>
+              <div class="quick-row">
+                <button class="ghost-action" id="continueTalk" type="button">继续倾诉</button>
+                <button class="ghost-action" data-target="intent" type="button">重新选择入口</button>
+              </div>
+              <div class="stream-status" id="streamStatus" aria-live="polite"></div>
+              <form class="composer" id="chatForm">
+                <label class="sr-only" for="userInput">输入想说的话</label>
+                <textarea id="userInput" rows="3" maxlength="1000" placeholder="比如：今天组会被否定后，我一直觉得自己很差。"></textarea>
+                <button class="send-button" type="submit" aria-label="发送">发送</button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen summary-screen" id="summary" aria-labelledby="summary-title">
+          <div class="section-head">
+            <p class="eyebrow">对话后的整理</p>
+            <h2 id="summary-title">把混乱拆成几块能看懂的内容。</h2>
+          </div>
+          <div class="summary-meta" id="summaryMeta"></div>
+          <div class="summary-grid" id="summaryGrid"></div>
+          <div class="screen-actions">
+            <button class="secondary-action" id="copySummary" type="button">复制整理卡片</button>
+            <button class="secondary-action" data-target="chat" type="button">回到聊天</button>
+            <button class="primary-action" data-target="feedback" type="button">填写反馈</button>
+          </div>
+        </section>
+
+        <section class="screen feedback-screen" id="feedback" aria-labelledby="feedback-title">
+          <div class="feedback-layout">
+            <div>
+              <p class="eyebrow">体验反馈</p>
+              <h2 id="feedback-title">这些反馈会直接服务评测体系和 Prompt 优化。</h2>
+              <div class="insight-panel" id="insightPanel">
+                <p class="panel-label">本轮评测视角</p>
+                <p>重点观察：是否被理解、回复是否自然、建议是否低负担、是否出现让用户不舒服的表达。</p>
+              </div>
+            </div>
+            <form class="feedback-form" id="feedbackForm">
+              <fieldset class="rating-group">
+                <legend>我感觉被理解</legend>
+                <div class="segmented">
+                  <label><input type="radio" name="understood" value="低" />低</label>
+                  <label><input type="radio" name="understood" value="中" checked />中</label>
+                  <label><input type="radio" name="understood" value="高" />高</label>
+                </div>
+              </fieldset>
+              <fieldset class="rating-group">
+                <legend>回复是否自然</legend>
+                <div class="segmented">
+                  <label><input type="radio" name="natural" value="不自然" />不自然</label>
+                  <label><input type="radio" name="natural" value="还可以" checked />还可以</label>
+                  <label><input type="radio" name="natural" value="自然" />自然</label>
+                </div>
+              </fieldset>
+              <fieldset class="rating-group">
+                <legend>建议是否有帮助</legend>
+                <div class="segmented">
+                  <label><input type="radio" name="helpful" value="无帮助" />无帮助</label>
+                  <label><input type="radio" name="helpful" value="有一点" checked />有一点</label>
+                  <label><input type="radio" name="helpful" value="有帮助" />有帮助</label>
+                </div>
+              </fieldset>
+              <label class="checkline">
+                <input type="checkbox" name="return" checked />
+                <span>愿意再次使用</span>
+              </label>
+              <label class="textarea-label" for="uncomfortable">哪句话让你不舒服</label>
+              <textarea id="uncomfortable" name="uncomfortable" rows="4" maxlength="300" placeholder="可以留空，也可以写下具体措辞。"></textarea>
+              <button class="primary-action" type="submit">提交反馈</button>
+            </form>
+            <div class="feedback-result" id="feedbackResult" aria-live="polite"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

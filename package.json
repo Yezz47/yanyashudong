@@ -1,0 +1,14 @@
+{
+  "name": "yanya-tree-hole",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.example.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "undici": "^8.4.1"
+  }
+}
