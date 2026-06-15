@@ -3,3 +3,6 @@ server.log
 server.err
 node_modules/
 .DS_Store
+
+.vercel
+.env*

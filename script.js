@@ -9,23 +9,23 @@ const modeCopy = {
   listen: {
     title: "我想被听见",
     opening:
-      "我在。你不用先说完整，先说最想被接住的那一小段就好。\n\n最近发生的事里，哪一个瞬间最占据你？",
+      "我在这里。你不用把事情整理好，也不用说得很完整。可以先从最想被接住的那一小段开始。\n\n如果愿意，我们就从今天最压在心上的那个瞬间说起。",
     reply:
-      "我听到了。这里面不只是事情本身，还有它牵动出来的感受。\n\n先停在这个地方看一眼：这件事之后，你脑子里反复出现的那句话是什么？"
+      "我听见了。那不只是一个事件，好像也牵动了你心里很柔软、很用力的一部分。\n\n我们可以慢一点。那一刻，最让你难受的是什么？"
   },
   understand: {
     title: "我想理解自己",
     opening:
-      "我们可以把这团感受拆小一点。先不判断对错，只看它由哪些部分组成。\n\n现在更接近焦虑、委屈、自责、疲惫，还是其实也有一点开心、踏实或期待？",
+      "我们可以不用急着分析对错，先陪这团感受待一会儿。很多情绪混在一起时，人会很难受，这是可以理解的。\n\n如果你愿意，先看看它更像焦虑、委屈、自责、疲惫，还是也夹着一点踏实、期待或被看见？",
     reply:
-      "我听到里面可能不只有一个情绪。我们可以先分清：这是事件带来的感受，还是你对自己的评价被牵动了。\n\n如果只选一个最重的来源，它更像科研、导师，还是未来方向？"
+      "这里面可能不止一种情绪。也许有事情本身带来的压力，也有“我是不是不够好”这样的自我怀疑被碰到了。\n\n此刻更想先看哪一部分：事情、关系，还是你对自己的感受？"
   },
   action: {
     title: "我想知道接下来怎么办",
     opening:
-      "我们只找一个很小的下一步，不要求立刻变好。\n\n如果把今天剩下的能量按 10 分算，你现在大概还有几分？",
+      "可以。我们不急着把所有问题都解决，只先找一个不会再压垮你的很小下一步。\n\n在行动之前，我想先确认一下：你现在更需要先缓一缓，还是已经有一点力气处理事情？",
     reply:
-      "先把目标降到“恢复一点掌控感”。下一步不需要大，只要具体。\n\n你更想处理事情本身，还是先让自己缓一缓？"
+      "那我们把目标放得低一点：不是立刻变好，而是让你重新有一点点掌控感。\n\n如果只做一个很小的动作，哪一件事最值得先被轻轻碰一下？"
   },
   safety: {
     title: "我现在状态很糟",
@@ -196,7 +196,7 @@ function updateScenePanel() {
 
 function shouldLocalSummarize() {
   const count = userMessages().length;
-  return count > 0 && count % 3 === 0;
+  return count >= 5 && count % 5 === 0;
 }
 
 function inferEmotion() {
@@ -225,14 +225,16 @@ function inferTrigger() {
 
 function inferStageSummary() {
   const latestAssistant = assistantMessages().at(-1)?.content || "";
-  const summarySource = [state.lastStageSummary, latestAssistant].find((text) => text.includes("我先帮你收一下"));
+  const summarySource = [state.lastStageSummary, latestAssistant].find(
+    (text) => text.includes("我想先陪你把刚才这些放在一起看一眼")
+  );
   if (summarySource) {
-    return summarySource.replace(/\n+/g, " ").replace(/接下来你想[:：]?.*$/s, "").trim();
+    return summarySource.replace(/\n+/g, " ").replace(/说到这里[，,].*$/s, "").trim();
   }
 
   const scene = state.currentScene?.label || "当前场景";
   const emotion = inferEmotion();
-  return `我先帮你收一下：这更像是${scene}相关的体验，核心情绪是${emotion}。这里不一定只有压力，也可能同时包含期待、成就、委屈或不确定。`;
+  return `我想先陪你把刚才这些放在一起看一眼：这像是和${scene}有关的一段经历，里面比较明显的感受是${emotion}。它不一定只是“压力”，也可能同时有期待、委屈、耗竭或一点点想被理解的需要。`;
 }
 
 function hasPositiveSignal() {
@@ -315,7 +317,7 @@ function inferAction() {
 function getLocalStageSummary() {
   const summary = inferStageSummary();
   state.lastStageSummary = summary;
-  return `${summary}\n\n接下来你想怎么走？\n1. 继续被听见：我再陪你说一会儿。\n2. 给我下一步：我帮你整理一个低负担行动。\n3. 生成整理卡片：把这轮对话收成一张卡片。`;
+  return `${summary}\n\n说到这里，我们不用急着往前赶。你可以继续在这里说一会儿；也可以让我陪你找一个很小、不会太费力的下一步。等你觉得可以了，我们再把这些整理成一张卡片。`;
 }
 
 function getLocalReply(text) {
@@ -327,16 +329,16 @@ function getLocalReply(text) {
 
   const scene = state.currentScene;
   if (hasPositiveSignal()) {
-    return "这个正向感受也很重要，它可能说明某个努力终于被看见，或者你正在靠近想要的状态。\n\n如果只选一个最想留住的部分，是进展本身、被认可的感觉，还是你重新有了掌控感？";
+    return "这个正向感受也很值得被好好放在这里。也许它说明，你有一部分努力终于被看见了，或者你正在靠近自己想要的状态。\n\n如果愿意说一点，你最想留住的是哪一种感觉？";
   }
   if (scene?.id === "research") {
-    return "我听到最重的部分，可能不是单个结果，而是“投入了很多，却看不到确定进展”的消耗感。\n\n现在最卡住你的是实验/数据，论文反馈，还是不知道下一步怎么推进？";
+    return "听起来，最难的可能不只是某个结果，而是你投入了很多，却迟迟得不到确定回应的那种消耗。\n\n我们先不急着解决。此刻最压着你的，是实验/数据，还是论文或课题推进？";
   }
   if (scene?.id === "advisor") {
-    return "组会或导师反馈很容易让人把“事情被评价”听成“我这个人被评价”。这两件事需要先分开。\n\n最刺痛你的是对方的哪一句，还是你当时脑子里冒出来的解释？";
+    return "导师或组会里的反馈，有时会让人很容易把“事情被评价”听成“我整个人被评价”。这会很疼，也很孤单。\n\n如果你愿意，最让你难受的是那句话本身，还是它让你开始怀疑自己？";
   }
   if (scene?.id === "future") {
-    return "未来相关的事很容易一下子压到今天身上，让人同时担心很多条路。\n\n如果只看最近一周，哪一件事最需要先被放到桌面上？";
+    return "未来相关的事很容易一下子压到今天身上，好像很多条路都要马上决定。这样紧绷是很正常的。\n\n我们先把范围缩小一点：最近这一周，哪件事最让你放不下？";
   }
 
   return modeCopy[state.mode].reply;
@@ -344,7 +346,7 @@ function getLocalReply(text) {
 
 function getFallbackReply(text) {
   const reason = state.lastStreamError ? `（${state.lastStreamError}）` : "";
-  return `真实模型暂时没有连上${reason}，我先切到本地疏解模式陪你继续。\n\n${getLocalReply(text)}`;
+  return `刚才连接有点不稳定${reason}。没关系，我还在这里，我们先慢慢继续。\n\n${getLocalReply(text)}`;
 }
 
 function sleep(ms) {
@@ -420,8 +422,8 @@ async function streamFromBackendWithRetry(bubble) {
 }
 
 function rememberAssistantSummary(text) {
-  if (text.includes("我先帮你收一下")) {
-    state.lastStageSummary = text.replace(/\n+/g, " ").replace(/接下来你想[:：]?.*$/s, "").trim();
+  if (text.includes("我想先陪你把刚才这些放在一起看一眼")) {
+    state.lastStageSummary = text.replace(/\n+/g, " ").replace(/说到这里[，,].*$/s, "").trim();
   }
 }
 
@@ -433,7 +435,7 @@ async function answerUser(text) {
   try {
     const streamed = STREAM_CONFIG.useBackendStream ? await streamFromBackendWithRetry(bubble) : false;
     if (!streamed) {
-      setStatus("真实模型暂时不可用，已切换为本地疏解模式。");
+      setStatus("连接暂时不稳定，我先继续陪你。");
       await streamTextIntoBubble(getFallbackReply(text), bubble);
     }
     rememberAssistantSummary(bubble.textContent);
@@ -467,7 +469,7 @@ function renderSummary() {
   const metaTags = [
     state.currentScene?.label || "场景待补充",
     `对话轮次 ${userMessages().length}`,
-    state.lastStageSummary ? "已同步阶段小结" : "轻量整理"
+    state.lastStageSummary ? "已同步轻柔回望" : "轻量整理"
   ];
   metaTags.forEach((item) => {
     const tag = document.createElement("span");
@@ -489,7 +491,7 @@ function renderInsightPanel() {
   insightPanel.innerHTML = `
     <p class="panel-label">本轮评测视角</p>
     <p>识别场景：${scene}</p>
-    <p>Prompt 观察重点：是否每 3 轮形成一次阶段小结；是否根据正向/负向情绪调整回应；行动建议是否贴近用户具体处境。</p>
+    <p>Prompt 观察重点：是否减少追问压迫感；是否先安抚再澄清；是否根据正向/负向情绪调整回应；行动建议是否贴近用户具体处境。</p>
   `;
 }
 
@@ -557,7 +559,7 @@ feedbackForm.addEventListener("submit", (event) => {
   feedbackResult.classList.add("show");
   feedbackResult.textContent = `已记录：被理解感 ${data.get("understood")}，自然度 ${data.get("natural")}，建议帮助度 ${data.get("helpful")}，${returnIntent}。${
     uncomfortable ? `需要优化的不适表达是：“${uncomfortable}”。` : "本轮未填写不适表达。"
-  } 这条反馈可用于后续 Prompt 评测：场景识别、情绪命名、阶段小结、行动建议贴合度。`;
+  } 这条反馈可用于后续 Prompt 评测：场景识别、情绪命名、安抚感、追问压迫感、行动建议贴合度。`;
 });
 
 setMode("listen", true);
