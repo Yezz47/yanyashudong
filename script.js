@@ -1,9 +1,24 @@
 const STREAM_CONFIG = {
   useBackendStream: true,
   endpoint: "/api/chat/stream",
+  eventEndpoint: "/api/events",
+  memoryEndpoint: "/api/memory/session",
   timeoutMs: 22000,
   retryCount: 1
 };
+
+function createId(prefix) {
+  const value = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}_${value}`;
+}
+
+function createConversationMessage(role, content) {
+  return { id: createId("msg"), role, content, createdAt: new Date().toISOString() };
+}
+
+function routeForMode(mode) {
+  return { safety: "SAFETY", understand: "CLARIFY", action: "ACT", listen: "LISTEN" }[mode] || "CLARIFY";
+}
 
 const modeCopy = {
   listen: {
@@ -57,6 +72,17 @@ const sceneRules = [
   }
 ];
 
+const gradeSignals = [
+  { grade: "研一", weight: { research: 1.5, future: 0.3 } },
+  { grade: "研二", weight: { research: 1, future: 1 } },
+  { grade: "研三", weight: { future: 1.5, research: 0.3 } },
+  { grade: "博一", weight: { research: 1.5 } },
+  { grade: "博二", weight: { research: 1, future: 0.3 } },
+  { grade: "博三", weight: { future: 1, research: 0.5 } },
+  { grade: "延毕", weight: { future: 1.5, advisor: 0.3 } },
+  { grade: "延期", weight: { future: 1.5 } }
+];
+
 const emotionRules = [
   ["焦虑", ["焦虑", "担心", "不安", "慌", "来不及", "赶不上", "延期", "毕业", "找不到", "不确定"]],
   ["委屈", ["委屈", "不公平", "被误解", "被否定", "被批评", "难堪", "憋屈"]],
@@ -71,13 +97,23 @@ const emotionRules = [
 ];
 
 const state = {
+  sessionId: createId("session"),
+  sessionStartedAt: new Date().toISOString(),
   mode: "listen",
   conversation: [],
   isStreaming: false,
   lastStreamError: "",
   currentScene: null,
   lastStageSummary: "",
-  lastSummary: []
+  lastSummary: [],
+  activeRequestId: null,
+  lastEffectiveRoute: "LISTEN",
+  lastRecommendedRoute: "LISTEN",
+  experimentId: "none",
+  experimentVariant: "unassigned",
+  requestedSupportMode: "listen",
+  lastOutcome: "model",
+  lastStreamErrorCode: null
 };
 
 const screens = [...document.querySelectorAll(".screen")];
@@ -90,6 +126,7 @@ const chatTitle = document.querySelector("#chat-title");
 const chatForm = document.querySelector("#chatForm");
 const userInput = document.querySelector("#userInput");
 const continueTalk = document.querySelector("#continueTalk");
+const clearChat = document.querySelector("#clearChat");
 const finishChat = document.querySelector("#finishChat");
 const summaryGrid = document.querySelector("#summaryGrid");
 const summaryMeta = document.querySelector("#summaryMeta");
@@ -118,7 +155,16 @@ function showScreen(id) {
   stepTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.target === id));
   if (id === "summary") renderSummary();
   if (id === "feedback") renderInsightPanel();
+  if (id === "about") revealAboutBlocks();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function revealAboutBlocks() {
+  const blocks = document.querySelectorAll(".about-block");
+  blocks.forEach((block) => block.classList.remove("revealed"));
+  blocks.forEach((block, i) => {
+    window.setTimeout(() => block.classList.add("revealed"), 100 + i * 90);
+  });
 }
 
 function setMode(mode, reset = false) {
@@ -126,10 +172,22 @@ function setMode(mode, reset = false) {
   chatTitle.textContent = modeCopy[mode].title;
   modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
   if (reset) {
+    state.sessionId = createId("session");
+    state.sessionStartedAt = new Date().toISOString();
     messages.innerHTML = "";
     state.conversation = [];
     state.currentScene = null;
     state.lastStageSummary = "";
+    state.lastSummary = [];
+    state.activeRequestId = null;
+    state.lastEffectiveRoute = routeForMode(mode);
+    state.lastRecommendedRoute = routeForMode(mode);
+    state.experimentId = "none";
+    state.experimentVariant = "unassigned";
+    state.requestedSupportMode = mode;
+    state.lastOutcome = "model";
+    state.lastStreamError = "";
+    state.lastStreamErrorCode = null;
     updateScenePanel();
     addMessage(modeCopy[mode].opening, "ai", mode === "safety");
   }
@@ -155,20 +213,39 @@ function addMessage(text, sender, isSafety = false) {
   return item;
 }
 
+const riskLevels = {
+  high: ["不想活", "自杀", "伤害自己", "活不下去", "结束生命", "想死", "了此一生", "一了百了", "跳下去", "割腕", "上吊", "吃药自杀", "想离开这个世界"],
+  mid: ["撑不下去", "没意思了", "解脱", "消失算了", "活着没意义", "不如死了", "熬不下去", "想结束一切", "没有人在乎我", "活着是负担", "撑不住了", "绝望"]
+};
+
 function detectRisk(text) {
-  return ["不想活", "自杀", "伤害自己", "活不下去", "结束生命", "想死"].some((word) => text.includes(word));
+  if (riskLevels.high.some((word) => text.includes(word))) return "high";
+  if (riskLevels.mid.some((word) => text.includes(word))) return "mid";
+  return null;
 }
 
 function detectScene() {
   const text = allUserText();
-  let best = null;
-  let bestScore = 0;
+  const scores = {};
 
   for (const scene of sceneRules) {
-    const score = scene.keywords.reduce((total, keyword) => total + (text.includes(keyword) ? 1 : 0), 0);
-    if (score > bestScore) {
+    scores[scene.id] = scene.keywords.reduce((total, keyword) => total + (text.includes(keyword) ? 1 : 0), 0);
+  }
+
+  for (const signal of gradeSignals) {
+    if (text.includes(signal.grade)) {
+      for (const [sceneId, weight] of Object.entries(signal.weight)) {
+        scores[sceneId] = (scores[sceneId] || 0) + weight;
+      }
+    }
+  }
+
+  let best = null;
+  let bestScore = 0;
+  for (const scene of sceneRules) {
+    if (scores[scene.id] > bestScore) {
       best = scene;
-      bestScore = score;
+      bestScore = scores[scene.id];
     }
   }
 
@@ -321,8 +398,12 @@ function getLocalStageSummary() {
 }
 
 function getLocalReply(text) {
-  if (detectRisk(text) && state.mode !== "safety") {
+  const risk = detectRisk(text);
+  if (risk && state.mode !== "safety") {
     setMode("safety", false);
+    if (risk === "high") {
+      return "你现在说的这些让我非常担心你的安全，我们先停下来。如果你已经有了具体计划，或者正在伤害自己，请立刻拨打当地急救电话，或马上联系身边能信任的人——你不需要一个人扛着。此刻你身边有可以联系的人吗？";
+    }
     return modeCopy.safety.reply;
   }
   if (shouldLocalSummarize()) return getLocalStageSummary();
@@ -353,6 +434,14 @@ function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function clearSessionMemory(sessionId) {
+  return fetch(STREAM_CONFIG.memoryEndpoint, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId })
+  }).catch(() => null);
+}
+
 async function streamTextIntoBubble(text, bubble, speed = 22) {
   bubble.textContent = "";
   for (const char of text) {
@@ -362,18 +451,26 @@ async function streamTextIntoBubble(text, bubble, speed = 22) {
   }
 }
 
-async function streamOnceFromBackend(bubble, signal) {
+async function streamOnceFromBackend(bubble, signal, attempt) {
   const response = await fetch(STREAM_CONFIG.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      mode: state.mode,
+      mode: state.requestedSupportMode,
       scene: state.currentScene?.label || "未识别",
       userTurnCount: userMessages().length,
-      messages: state.conversation
+      messages: state.conversation,
+      sessionId: state.sessionId,
+      requestId: state.activeRequestId,
+      attempt
     }),
     signal
   });
+
+  state.lastEffectiveRoute = response.headers.get("X-Yanya-Route") || state.lastEffectiveRoute;
+  state.lastRecommendedRoute = response.headers.get("X-Yanya-Recommended-Route") || state.lastEffectiveRoute;
+  state.experimentId = response.headers.get("X-Yanya-Experiment-Id") || "none";
+  state.experimentVariant = response.headers.get("X-Yanya-Experiment-Variant") || "unassigned";
 
   if (!response.ok || !response.body) {
     const reason = await response.text().catch(() => "");
@@ -405,7 +502,7 @@ async function streamFromBackendWithRetry(bubble) {
     try {
       bubble.textContent = "";
       setStatus(attempt === 0 ? "正在连接 DeepSeek..." : "连接不稳定，正在重试一次...");
-      await streamOnceFromBackend(bubble, controller.signal);
+      await streamOnceFromBackend(bubble, controller.signal, attempt);
       setStatus("");
       return true;
     } catch (error) {
@@ -417,8 +514,33 @@ async function streamFromBackendWithRetry(bubble) {
   }
 
   state.lastStreamError = lastError?.message || "连接失败";
+  state.lastStreamErrorCode =
+    lastError?.name === "AbortError" || /AbortError|超时/i.test(state.lastStreamError)
+      ? "timeout"
+      : /empty|空响应/i.test(state.lastStreamError)
+        ? "empty_response"
+        : /HTTP|状态码|request failed/i.test(state.lastStreamError)
+          ? "http_error"
+          : "network_error";
   console.warn("Backend stream failed, using local fallback:", lastError);
   return false;
+}
+
+function reportClientEvent(eventType, outcome) {
+  fetch(STREAM_CONFIG.eventEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    keepalive: true,
+    body: JSON.stringify({
+      eventType,
+      sessionId: state.sessionId,
+      requestId: state.activeRequestId,
+      mode: state.requestedSupportMode,
+      effectiveRoute: state.lastEffectiveRoute,
+      outcome,
+      errorCode: state.lastStreamErrorCode
+    })
+  }).catch(() => {});
 }
 
 function rememberAssistantSummary(text) {
@@ -428,18 +550,31 @@ function rememberAssistantSummary(text) {
 }
 
 async function answerUser(text) {
+  const risk = detectRisk(text);
+  state.requestedSupportMode = state.mode;
+  if (risk) setMode("safety", false);
+  state.activeRequestId = createId("request");
+  state.lastEffectiveRoute = routeForMode(state.mode);
+  state.lastRecommendedRoute = state.lastEffectiveRoute;
+  state.experimentId = "none";
+  state.experimentVariant = "unassigned";
+  state.lastOutcome = "model";
+  state.lastStreamErrorCode = null;
   detectScene();
-  const bubble = addMessage("", "ai", detectRisk(text) || state.mode === "safety");
+  const bubble = addMessage("", "ai", risk || state.mode === "safety");
   setStreaming(true);
 
   try {
     const streamed = STREAM_CONFIG.useBackendStream ? await streamFromBackendWithRetry(bubble) : false;
     if (!streamed) {
+      state.lastOutcome = "local_fallback";
       setStatus("连接暂时不稳定，我先继续陪你。");
       await streamTextIntoBubble(getFallbackReply(text), bubble);
+      reportClientEvent("client_fallback", "local_fallback");
     }
     rememberAssistantSummary(bubble.textContent);
-    state.conversation.push({ role: "assistant", content: bubble.textContent });
+    state.conversation.push(createConversationMessage("assistant", bubble.textContent));
+    reportClientEvent("client_response_completed", state.lastOutcome);
   } finally {
     setStreaming(false);
     userInput.focus();
@@ -526,10 +661,17 @@ chatForm.addEventListener("submit", async (event) => {
   const text = userInput.value.trim();
   if (!text || state.isStreaming) return;
 
-  state.conversation.push({ role: "user", content: text });
+  state.conversation.push(createConversationMessage("user", text));
   addMessage(text, "user");
   userInput.value = "";
   await answerUser(text);
+});
+
+userInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    if (!state.isStreaming) chatForm.requestSubmit();
+  }
 });
 
 continueTalk.addEventListener("click", async () => {
@@ -540,8 +682,17 @@ continueTalk.addEventListener("click", async () => {
     ? `可以，我们继续停在这个${state.currentScene.label}场景里。现在最想继续看的，是事件、感受，还是下一步？`
     : "可以，我们继续停在这里。你更想继续说事件、感受，还是下一步？";
   await streamTextIntoBubble(prompt, bubble);
-  state.conversation.push({ role: "assistant", content: prompt });
+  state.conversation.push(createConversationMessage("assistant", prompt));
   setStreaming(false);
+  userInput.focus();
+});
+
+clearChat.addEventListener("click", () => {
+  if (state.isStreaming) return;
+  const previousSessionId = state.sessionId;
+  setMode(state.mode, true);
+  void clearSessionMemory(previousSessionId);
+  setStatus("对话与上下文已清空，已开始新的临时会话。");
   userInput.focus();
 });
 
@@ -555,11 +706,98 @@ feedbackForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(feedbackForm);
   const uncomfortable = data.get("uncomfortable")?.trim();
-  const returnIntent = data.get("return") ? "愿意再次使用" : "暂不确定是否再次使用";
+  const understood = data.get("understood");
+  const natural = data.get("natural");
+  const helpful = data.get("helpful");
+  const willReturn = Boolean(data.get("return"));
+  const scene = state.currentScene?.label || "未识别";
+  const turns = userMessages().length;
+
+  const record = {
+    ts: Date.now(),
+    scene,
+    turns,
+    understood,
+    natural,
+    helpful,
+    willReturn,
+    uncomfortable: uncomfortable || "",
+    sessionId: state.sessionId,
+    requestedSupportMode: state.requestedSupportMode,
+    recommendedRoute: state.lastRecommendedRoute,
+    effectiveRoute: state.lastEffectiveRoute,
+    outcome: state.lastOutcome,
+    experimentId: state.experimentId,
+    experimentVariant: state.experimentVariant,
+    appVersion: "1.0.0",
+    promptVersion: "v2-warm",
+    contextBuilderVersion: "context-builder-v1",
+    analyzerVersion: "state-analyzer-shadow-v1",
+    safetyVersion: "risk-keywords-v1",
+    routerVersion: "policy-router-shadow-v1",
+    hardSafetyRouterVersion: "hard-safety-v1",
+    taskPlannerVersion: "task-planner-v1",
+    shortTermMemoryVersion: "short-term-memory-v1",
+    responseValidatorVersion: "response-validator-v1",
+    experimentVersion: "experiment-assignment-v1"
+  };
+  record.badCases = window.YanyaEvaluation?.buildBadCases(record) || [];
+  record.badCase = record.badCases[0] || null;
+  saveFeedback(record);
+
   feedbackResult.classList.add("show");
-  feedbackResult.textContent = `已记录：被理解感 ${data.get("understood")}，自然度 ${data.get("natural")}，建议帮助度 ${data.get("helpful")}，${returnIntent}。${
-    uncomfortable ? `需要优化的不适表达是：“${uncomfortable}”。` : "本轮未填写不适表达。"
-  } 这条反馈可用于后续 Prompt 评测：场景识别、情绪命名、安抚感、追问压迫感、行动建议贴合度。`;
+  feedbackResult.innerHTML = renderMetrics(record);
 });
+
+function saveFeedback(record) {
+  try {
+    const list = JSON.parse(localStorage.getItem("yanya_feedback") || "[]");
+    list.push(record);
+    localStorage.setItem("yanya_feedback", JSON.stringify(list.slice(-100)));
+  } catch (e) {
+    console.warn("feedback save failed", e);
+  }
+}
+
+function loadFeedbackHistory() {
+  try {
+    return JSON.parse(localStorage.getItem("yanya_feedback") || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderMetrics(current) {
+  const history = loadFeedbackHistory();
+  const analytics = window.YanyaEvaluation?.analyzeFeedback(history);
+  const total = analytics?.overall.total || history.length;
+  const understoodRate = analytics?.overall.high_understood_rate || 0;
+  const returnRate = analytics?.overall.return_rate || 0;
+  const avgTurns = total ? (history.reduce((s, r) => s + (r.turns || 0), 0) / total).toFixed(1) : "0";
+  const negativeRate = analytics?.overall.negative_feedback_rate || 0;
+  const currentVariant = analytics?.by_experiment_variant?.[current.experimentVariant];
+  const currentScene = analytics?.by_scene?.[current.scene];
+
+  return `
+    <p class="panel-label">本轮指标</p>
+    <p>场景识别：${escapeHtml(current.scene)} ｜ 对话轮次：${current.turns} ｜ 闭环完成：是</p>
+    <p>被理解感：${escapeHtml(current.understood)} ｜ 自然度：${escapeHtml(current.natural)} ｜ 建议帮助度：${escapeHtml(current.helpful)} ｜ ${current.willReturn ? "愿意再次使用" : "暂不确定"}</p>
+    <p>实验分组：${escapeHtml(current.experimentId)} / ${escapeHtml(current.experimentVariant)}（仅改变结尾问题形式）</p>
+    ${current.uncomfortable ? `<p>需优化的不适表达："${escapeHtml(current.uncomfortable)}"</p>` : ""}
+    <p class="panel-label" style="margin-top:12px">历史聚合（共 ${total} 条反馈）</p>
+    <p>被理解感高分率：${understoodRate}% ｜ 愿意再次使用率：${returnRate}% ｜ 负反馈率：${negativeRate}% ｜ 平均对话轮次：${avgTurns}</p>
+    <p>当前场景样本：${currentScene?.total || 0} ｜ 当前实验组样本：${currentVariant?.total || 0} ｜ Bad Case：${analytics?.overall.bad_case_count || 0}</p>
+    <p style="color:var(--muted);font-size:0.92rem;margin-top:8px">反馈、自由文本和 Bad Case 明细仅存于本地浏览器；可按场景、路线、模块版本和实验组聚合。</p>
+  `;
+}
 
 setMode("listen", true);

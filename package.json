@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.example.js"
+    "start": "node server.example.js",
+    "test": "node --test",
+    "test:prompt": "node tests/prompt.test.js"
   },
   "engines": {
     "node": ">=18"

@@ -1,170 +1,92 @@
-# 研压树洞 Demo
+# 研压树洞 ｜ AI 产品经理作品集项目
 
-这是一个面向研究生科研、学业和毕业压力场景的 AI 情绪疏解助手原型。
+> 面向研究生的 AI 情绪疏解 Web App · 从情绪混乱到结构化整理再到低负担行动的完整闭环
 
-## 推荐打开方式
+这是一个 AI 产品经理实习生求职作品集项目，展示对目标用户和场景的拆解能力、对话类产品的闭环设计、Prompt 评测与迭代、以及数据驱动的指标体系思维。
 
-实时对话请使用 Node 后端入口，端口是 `4174`：
+## 作品集亮点
 
-方式一：在 PowerShell 当前窗口设置：
+| 维度 | 体现 |
+|------|------|
+| 场景拆解 | 聚焦研究生科研 / 导师 / 未来三类真实压力，非泛用聊天 |
+| 闭环设计 | 场景识别 → 情绪命名 → 温和解释 → 低负担行动，五页线性闭环 |
+| Prompt 迭代 | 从 v1「产品闭环驱动」演进到 v2「咨询式陪伴驱动」，有据可查 |
+| 指标体系 | 北极星（被理解感高分率）+ 驱动 + 健康三层，反馈数据本地持久化可聚合 |
+| 产品决策 | 年级信号内化到场景识别，而非前置问卷——守住「被听见」体验 |
 
-```powershell
-cd F:\P,M
+## 核心闭环
+
+```
+选择入口 → 咨询式对话 → 情绪整理卡片 → 反馈评测
+（倾听/理解/行动/安全）  （每5轮轻柔回望）  （结构化输出）  （服务Prompt优化）
+```
+
+## 快速开始
+
+实时对话需 Node 后端，端口 `4174`：
+
+```bash
+# 1. 设置环境变量（PowerShell）
 $env:DEEPSEEK_API_KEY="你的 DeepSeek API Key"
 $env:DEEPSEEK_MODEL="deepseek-chat"
+
+# 2. 启动
 node server.example.js
+
+# 3. 打开
+# http://127.0.0.1:4174/index.html
 ```
 
-方式二：在 `F:\P,M` 新建本地 `.env` 文件：
+或新建本地 `.env`：
 
 ```text
 DEEPSEEK_API_KEY=你的 DeepSeek API Key
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-然后运行：
+## 部署到 Vercel（推荐公网分享）
 
-```powershell
-cd F:\P,M
-node server.example.js
+Vercel 会把根目录静态页面作为网站，`/api` 目录作为后端函数。项目已提供 `api/chat/stream.js`、`api/health.js`、`vercel.json`。
+
+1. 注册 Vercel，用 GitHub 登录
+2. 把本项目上传到 GitHub（确保 `.env` 未提交）
+3. 新建 Project，Import 仓库，Framework Preset 选 `Other`
+4. Build Command / Output Directory 留空
+5. Environment Variables 添加：
+   ```text
+   DEEPSEEK_API_KEY=你的 DeepSeek API Key
+   DEEPSEEK_MODEL=deepseek-chat
+   ```
+6. Deploy 后访问 `https://你的项目.vercel.app/`
+
+部署后先验证健康检查：`https://你的项目.vercel.app/api/health` 看到 `"keyConfigured": true` 即正常。
+
+## 技术方案
+
+- 前端：纯原生 HTML / CSS / JS（无框架，轻量可部署）
+- 后端：Node + DeepSeek 流式接口
+- 兜底链：DeepSeek 流式 → 超时重试 → 本地疏解模板（保证 demo 不卡死）
+- 数据策略：无账号、无云端数据库；反馈数据存 localStorage，可聚合可跨会话对比
+- 安全机制：风险关键词三级（高/中/无），高危阻断普通对话并强引导求助
+
+## 项目结构
+
+```
+├── index.html          # 五页流程 + 关于页（作品集叙事）
+├── script.js           # 前端逻辑：场景识别/对话/反馈/指标
+├── styles.css          # 温暖治愈视觉系统
+├── api/chat/stream.js  # DeepSeek 流式接口（Vercel serverless）
+├── api/health.js       # 健康检查
+├── server.example.js   # 本地开发服务器
+├── vercel.json         # 部署配置
+├── PRD_Notion.md       # 产品需求文档
+└── PROMPT_Optimization.md  # Prompt 迭代记录
 ```
 
-然后打开：
+## 边界声明
 
-```text
-http://127.0.0.1:4174/index.html
-```
+本产品提供情绪支持，不替代心理咨询、精神科诊疗或紧急救助。用户表达自伤 / 自杀倾向时，系统会优先进入安全支持模式并引导联系现实帮助。
 
-`4175` 如果是 `python -m http.server` 启动的，只适合静态预览页面，不适合真实实时对话。
+## 作品集说明
 
-## 网络不稳定时的策略
-
-当前前端已经开启后端流式模式：
-
-```js
-useBackendStream: true
-```
-
-用户发送消息后会先连接 `/api/chat/stream`。如果 DeepSeek 网络超时或中断，前端会自动重试一次；仍失败时，会切换到本地疏解模板，保证 demo 不会卡死，用户也能继续完成“表达情绪 -> 整理情绪 -> 轻量行动”的闭环。
-
-## DeepSeek 接入说明
-
-后端使用 DeepSeek OpenAI 兼容接口：
-
-- Base URL: `https://api.deepseek.com`
-- Endpoint: `/chat/completions`
-- 默认模型：`deepseek-chat`
-- 流式字段：`choices[0].delta.content`
-
-API Key 只放在服务端环境变量里，不要写进前端页面或提交到代码文件。
-
-## 分享给别人
-
-### 1. 本机演示
-
-适合自己电脑上展示：
-
-```powershell
-cd F:\P,M
-node server.example.js
-```
-
-打开：
-
-```text
-http://127.0.0.1:4174/index.html
-```
-
-### 2. 同一 Wi-Fi/局域网分享
-
-让同一网络下的同学访问你的电脑：
-
-```powershell
-cd F:\P,M
-$env:HOST="0.0.0.0"
-node server.example.js
-```
-
-然后查看你电脑的局域网 IP：
-
-```powershell
-ipconfig
-```
-
-把地址发给对方，格式类似：
-
-```text
-http://你的局域网IP:4174/index.html
-```
-
-注意：Windows 防火墙可能会询问是否允许 Node.js 访问网络，需要允许专用网络访问。
-
-### 3. 公网分享
-
-适合发给不在同一网络的人。推荐把整个项目部署到一个支持 Node 服务的平台，例如 Render、Railway 或自己的服务器/VPS。
-
-#### Vercel 部署
-
-Vercel 会把根目录静态页面作为网站，把 `/api` 目录下的文件作为后端函数。这个项目已经提供：
-
-```text
-api/chat/stream.js
-api/health.js
-vercel.json
-```
-
-推荐步骤：
-
-1. 注册 Vercel，并用 GitHub 登录。
-2. 把 `F:\P,M` 上传到 GitHub，确保 `.env` 没有被提交。
-3. 在 Vercel 新建 Project，Import 你的 GitHub 仓库。
-4. Framework Preset 选择 `Other`。
-5. Build Command 留空。
-6. Output Directory 留空。
-7. 在 Environment Variables 添加：
-
-```text
-DEEPSEEK_API_KEY=你的 DeepSeek API Key
-DEEPSEEK_MODEL=deepseek-chat
-```
-
-8. Deploy 后，Vercel 会给你一个 `https://xxx.vercel.app` 链接。
-
-部署成功后，先访问：
-
-```text
-https://你的项目.vercel.app/api/health
-```
-
-看到 `"keyConfigured": true`，再访问：
-
-```text
-https://你的项目.vercel.app/
-```
-
-以 Render 为例：
-
-1. 把项目上传到 GitHub，确保不要上传 `.env`。
-2. 在 Render 新建 Web Service，选择这个 GitHub 仓库。
-3. Build Command 使用：
-
-```text
-npm install
-```
-
-4. Start Command 使用：
-
-```text
-npm start
-```
-
-5. 在平台后台配置环境变量：
-
-```text
-DEEPSEEK_API_KEY=你的 DeepSeek API Key
-DEEPSEEK_MODEL=deepseek-chat
-```
-
-部署成功后，平台会给你一个 `https://...` 的公网链接，别人点开就能使用。
-
-不要把 `.env` 或 API Key 发给别人，也不要把 Key 写到 `script.js`、`index.html` 里。公开分享后，别人使用工具会消耗你的 DeepSeek 额度，正式开放前建议增加访问口令、限流或用量统计。
+详细的产品定位、闭环设计、Prompt 迭代记录、指标体系、关键产品决策，见网页内「关于」页（导航最后一项）。
