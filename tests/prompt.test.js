@@ -1,5 +1,5 @@
 const assert = require("node:assert");
-const { buildInstructions } = require("../api/prompt");
+const { buildInstructions } = require("../lib/prompt");
 
 const listenPrompt = buildInstructions("listen", "导师", 1);
 const actionPrompt = buildInstructions("action", "科研", 2);

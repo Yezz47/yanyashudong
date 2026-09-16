@@ -1,4 +1,4 @@
-const { createTelemetry, normalizeClientEvent } = require("./telemetry");
+const { createTelemetry, normalizeClientEvent } = require("../lib/telemetry");
 
 const telemetry = createTelemetry();
 

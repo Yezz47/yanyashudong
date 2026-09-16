@@ -1,8 +1,8 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const { ReadableStream } = require("node:stream/web");
-const { createChatHandler } = require("../api/chat-handler");
-const { detectRisk } = require("../api/safety");
+const { createChatHandler } = require("../lib/chat-handler");
+const { detectRisk } = require("../lib/safety");
 const quietTelemetry = { track() {} };
 
 function response() {

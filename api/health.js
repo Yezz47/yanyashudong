@@ -1,5 +1,5 @@
-const versions = require("./versions");
-const { RETENTION_DAYS, SCHEMA_VERSION } = require("./telemetry");
+const versions = require("../lib/versions");
+const { RETENTION_DAYS, SCHEMA_VERSION } = require("../lib/telemetry");
 
 module.exports = function handler(req, res) {
   if (req.method !== "GET") {

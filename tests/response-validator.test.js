@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const { ReadableStream } = require("node:stream/web");
-const { createChatHandler } = require("../api/chat-handler");
+const { createChatHandler } = require("../lib/chat-handler");
 const {
   BLOCKED_RESPONSE,
   MAX_QUESTIONS,
@@ -9,7 +9,7 @@ const {
   RESPONSE_VALIDATOR_OUTPUT_SCHEMA,
   validateResponse,
   validateResponseResult
-} = require("../api/response-validator");
+} = require("../lib/response-validator");
 
 function response() {
   return {

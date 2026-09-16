@@ -1,3 +1,3 @@
-const { createChatHandler } = require("../chat-handler");
+const { createChatHandler } = require("../../lib/chat-handler");
 
 module.exports = createChatHandler();

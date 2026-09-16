@@ -1,14 +1,14 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const { ReadableStream } = require("node:stream/web");
-const { createChatHandler } = require("../api/chat-handler");
+const { createChatHandler } = require("../lib/chat-handler");
 const {
   EXPERIMENT,
   EXPERIMENT_ASSIGNMENT_SCHEMA,
   assignExperiment,
   formatExperimentForPrompt,
   validateExperimentAssignment
-} = require("../api/experiment");
+} = require("../lib/experiment");
 const { BAD_CASE_SCHEMA, analyzeFeedback, buildBadCases, validateBadCase } = require("../evaluation");
 
 function response() {

@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const test = require("node:test");
-const { createChatHandler } = require("../api/chat-handler");
-const { createTelemetry, normalizeClientEvent } = require("../api/telemetry");
+const { createChatHandler } = require("../lib/chat-handler");
+const { createTelemetry, normalizeClientEvent } = require("../lib/telemetry");
 
 function response() {
   return {

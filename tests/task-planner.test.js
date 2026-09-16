@@ -1,8 +1,8 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const { ReadableStream } = require("node:stream/web");
-const { createChatHandler } = require("../api/chat-handler");
-const { analyzeState } = require("../api/state-analyzer");
+const { createChatHandler } = require("../lib/chat-handler");
+const { analyzeState } = require("../lib/state-analyzer");
 const {
   TASK_PLANNER_INPUT_SCHEMA,
   TASK_PLANNER_OUTPUT_SCHEMA,
@@ -10,7 +10,7 @@ const {
   planTask,
   validatePlanningInput,
   validatePlanningOutput
-} = require("../api/task-planner");
+} = require("../lib/task-planner");
 
 function response() {
   return {

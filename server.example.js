@@ -7,12 +7,12 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { createChatHandler } = require("./api/chat-handler");
-const { createMemoryHandler } = require("./api/memory-handler");
-const { createShortTermMemory, DEFAULT_MAX_SESSIONS, DEFAULT_TTL_MS } = require("./api/short-term-memory");
+const { createChatHandler } = require("./lib/chat-handler");
+const { createMemoryHandler } = require("./lib/memory-handler");
+const { createShortTermMemory, DEFAULT_MAX_SESSIONS, DEFAULT_TTL_MS } = require("./lib/short-term-memory");
 const eventHandler = require("./api/events");
-const versions = require("./api/versions");
-const { createTelemetry, RETENTION_DAYS, SCHEMA_VERSION } = require("./api/telemetry");
+const versions = require("./lib/versions");
+const { createTelemetry, RETENTION_DAYS, SCHEMA_VERSION } = require("./lib/telemetry");
 
 const PORT = Number(process.env.PORT || 4174);
 const HOST = process.env.HOST || (process.env.PORT ? "0.0.0.0" : "127.0.0.1");

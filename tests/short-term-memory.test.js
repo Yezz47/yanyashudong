@@ -1,14 +1,14 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const { ReadableStream } = require("node:stream/web");
-const { createChatHandler } = require("../api/chat-handler");
-const { createMemoryHandler } = require("../api/memory-handler");
+const { createChatHandler } = require("../lib/chat-handler");
+const { createMemoryHandler } = require("../lib/memory-handler");
 const {
   SHORT_TERM_MEMORY_SCHEMA,
   buildMemoryCandidate,
   createShortTermMemory,
   validateShortTermMemory
-} = require("../api/short-term-memory");
+} = require("../lib/short-term-memory");
 
 function response() {
   return {

@@ -1,9 +1,9 @@
 const assert = require("node:assert");
 const test = require("node:test");
 const evaluationSet = require("./fixtures/state-analyzer-eval.json");
-const { analyzeState } = require("../api/state-analyzer");
-const { evaluateCases } = require("../api/state-evaluation");
-const { STATE_ANALYSIS_SCHEMA, validateStateAnalysis } = require("../api/state-schema");
+const { analyzeState } = require("../lib/state-analyzer");
+const { evaluateCases } = require("../lib/state-evaluation");
+const { STATE_ANALYSIS_SCHEMA, validateStateAnalysis } = require("../lib/state-schema");
 
 test("state analyzer output conforms to the declared schema", () => {
   const result = analyzeState(

@@ -1,8 +1,8 @@
 const assert = require("node:assert");
 const test = require("node:test");
-const { createChatHandler } = require("../api/chat-handler");
-const { analyzeState } = require("../api/state-analyzer");
-const { recommendRoute, routePolicy } = require("../api/policy-router");
+const { createChatHandler } = require("../lib/chat-handler");
+const { analyzeState } = require("../lib/state-analyzer");
+const { recommendRoute, routePolicy } = require("../lib/policy-router");
 const evaluationSet = require("./fixtures/state-analyzer-eval.json");
 
 function state(text, mode) {

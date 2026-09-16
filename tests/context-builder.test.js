@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const test = require("node:test");
-const { buildContext, RECENT_MESSAGE_LIMIT } = require("../api/context-builder");
-const { createChatHandler } = require("../api/chat-handler");
+const { buildContext, RECENT_MESSAGE_LIMIT } = require("../lib/context-builder");
+const { createChatHandler } = require("../lib/chat-handler");
 
 function response() {
   return {
