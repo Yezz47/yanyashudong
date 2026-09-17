@@ -1,92 +1,165 @@
-# 研压树洞 ｜ AI 产品经理作品集项目
+# 小树洞 2.0
 
-> 面向研究生的 AI 情绪疏解 Web App · 从情绪混乱到结构化整理再到低负担行动的完整闭环
+> 我懂你，也一直在这里。
 
-这是一个 AI 产品经理实习生求职作品集项目，展示对目标用户和场景的拆解能力、对话类产品的闭环设计、Prompt 评测与迭代、以及数据驱动的指标体系思维。
+小树洞是一款面向研究生压力场景的 AI 情绪陪伴 Web 应用。它不会把用户放进生硬的情绪标签或流程里，而是通过自然对话、角色动作和轻量选择，让用户决定此刻更需要被倾听、一起梳理，还是共同寻找下一步。
 
-## 作品集亮点
+<p align="center">
+  <img src="./assets/treehole-character-sheet.png" alt="小树洞角色设定：简笔画和彩铅风格的树洞陪伴角色" width="900" />
+</p>
 
-| 维度 | 体现 |
-|------|------|
-| 场景拆解 | 聚焦研究生科研 / 导师 / 未来三类真实压力，非泛用聊天 |
-| 闭环设计 | 场景识别 → 情绪命名 → 温和解释 → 低负担行动，五页线性闭环 |
-| Prompt 迭代 | 从 v1「产品闭环驱动」演进到 v2「咨询式陪伴驱动」，有据可查 |
-| 指标体系 | 北极星（被理解感高分率）+ 驱动 + 健康三层，反馈数据本地持久化可聚合 |
-| 产品决策 | 年级信号内化到场景识别，而非前置问卷——守住「被听见」体验 |
+## 界面效果
 
-## 核心闭环
+### 陪伴首页
 
-```
-选择入口 → 咨询式对话 → 情绪整理卡片 → 反馈评测
-（倾听/理解/行动/安全）  （每5轮轻柔回望）  （结构化输出）  （服务Prompt优化）
-```
+- 固定 Slogan：**“我懂你，也一直在这里”**
+- 根据时间显示日常问候
+- 支持直接输入，不强制选择模式
+- 提供三种自然语言陪伴入口：
+  - 我只是想说说
+  - 陪我理一理
+  - 一起想想办法
+- 展示最近一次对话和自然的长期关系提示
+- 小树洞角色以中等视觉比重陪伴用户，不遮挡主要内容
+
+### 聊天页面
+
+- 对话内容保持为页面主体
+- 小树洞固定在侧边或移动端顶部
+- 通过角色动作和自然语言表达当前陪伴方式
+- 不展示“情绪识别结果”“置信度”或 Agent 执行流程
+- 用户可以随时选择：
+  - 继续和我说说
+  - 陪我理一理
+  - 一起想想办法
+
+## 小树洞的五种状态
+
+| 状态 | 角色表现 | 页面表达 |
+| --- | --- | --- |
+| 待机 | 轻微呼吸、缓慢上浮 | 我在这里，等你慢慢开口 |
+| 倾听 | 安静合手、轻微点头 | 我正在听你说 |
+| 思考 | 手靠近嘴边、轻轻侧身 | 我在想怎么回应你 |
+| 陪伴 | 抱着暖色爱心、柔和呼吸 | 陪你慢慢理一理 |
+| 给建议 | 双手托起嫩芽 | 要不要一起想想怎么办？ |
+
+五种状态均使用独立透明角色图，并通过 CSS 微动画呈现。动画保持克制，不使用游戏化转场。
+
+## 核心功能
+
+- **流式 AI 对话**：通过 DeepSeek 接口逐步返回回复
+- **三种陪伴方向**：倾听、梳理和行动建议可由用户自然切换
+- **场景理解**：围绕科研、导师沟通和未来选择等研究生常见压力展开
+- **短期记忆**：在同一会话内保留稳定信息和未完成事项
+- **本地回退回复**：接口超时或网络异常时仍能继续基本对话
+- **安全路由**：高风险表达优先进入安全支持，不继续普通建议流程
+- **响应式设计**：支持桌面端、平板和移动端
+- **减少动态效果支持**：遵循系统的减少动画设置
 
 ## 快速开始
 
-实时对话需 Node 后端，端口 `4174`：
+### 环境要求
+
+- Node.js 18 或更高版本
+- DeepSeek API Key
+
+### 1. 安装依赖
 
 ```bash
-# 1. 设置环境变量（PowerShell）
-$env:DEEPSEEK_API_KEY="你的 DeepSeek API Key"
-$env:DEEPSEEK_MODEL="deepseek-chat"
-
-# 2. 启动
-node server.example.js
-
-# 3. 打开
-# http://127.0.0.1:4174/index.html
+npm install
 ```
 
-或新建本地 `.env`：
+### 2. 配置环境变量
 
-```text
-DEEPSEEK_API_KEY=你的 DeepSeek API Key
+复制示例文件：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+编辑 `.env`：
+
+```env
+DEEPSEEK_API_KEY=你的_DeepSeek_API_Key
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-## 部署到 Vercel（推荐公网分享）
+真实的 `.env` 和 `.env.local` 已被 Git 忽略，不应上传到公开仓库。
 
-Vercel 会把根目录静态页面作为网站，`/api` 目录作为后端函数。项目已提供 `api/chat/stream.js`、`api/health.js`、`vercel.json`。
+### 3. 启动项目
 
-1. 注册 Vercel，用 GitHub 登录
-2. 把本项目上传到 GitHub（确保 `.env` 未提交）
-3. 新建 Project，Import 仓库，Framework Preset 选 `Other`
-4. Build Command / Output Directory 留空
-5. Environment Variables 添加：
+```bash
+npm start
+```
+
+打开：
+
+```text
+http://127.0.0.1:4174/
+```
+
+### 4. 运行测试
+
+```bash
+npm test
+```
+
+## 部署到 Vercel
+
+项目已包含 `vercel.json` 和 `api/` Serverless Functions。
+
+1. 在 Vercel 中导入本 GitHub 仓库
+2. Framework Preset 选择 **Other**
+3. Build Command 和 Output Directory 保持为空
+4. 添加环境变量：
+
    ```text
    DEEPSEEK_API_KEY=你的 DeepSeek API Key
    DEEPSEEK_MODEL=deepseek-chat
    ```
-6. Deploy 后访问 `https://你的项目.vercel.app/`
 
-部署后先验证健康检查：`https://你的项目.vercel.app/api/health` 看到 `"keyConfigured": true` 即正常。
-
-## 技术方案
-
-- 前端：纯原生 HTML / CSS / JS（无框架，轻量可部署）
-- 后端：Node + DeepSeek 流式接口
-- 兜底链：DeepSeek 流式 → 超时重试 → 本地疏解模板（保证 demo 不卡死）
-- 数据策略：无账号、无云端数据库；反馈数据存 localStorage，可聚合可跨会话对比
-- 安全机制：风险关键词三级（高/中/无），高危阻断普通对话并强引导求助
+5. 部署后访问 `/api/health`，确认 `keyConfigured` 为 `true`
 
 ## 项目结构
 
+```text
+.
+├── index.html                 # 首页与聊天页
+├── styles.css                # 视觉系统、响应式布局和角色动画
+├── script.js                 # 页面交互、状态切换和流式对话
+├── evaluation.js             # 对话评测辅助逻辑
+├── assets/
+│   ├── README.md             # 角色资源说明
+│   ├── treehole-character-sheet.png
+│   ├── treehole-idle-v3.png
+│   ├── treehole-listening-v3.png
+│   ├── treehole-thinking-v3.png
+│   ├── treehole-companion-v3.png
+│   └── treehole-suggestion-v3.png
+├── api/
+│   ├── chat/stream.js        # Vercel 流式对话接口
+│   ├── events.js             # 隐私安全的事件接口
+│   └── health.js             # 服务健康检查
+├── lib/                      # 路由、安全、记忆、验证和提示词逻辑
+├── tests/                    # 自动化测试
+├── server.example.js         # 本地开发服务器
+├── package.json
+├── vercel.json
+└── render.yaml
 ```
-├── index.html          # 五页流程 + 关于页（作品集叙事）
-├── script.js           # 前端逻辑：场景识别/对话/反馈/指标
-├── styles.css          # 温暖治愈视觉系统
-├── api/chat/stream.js  # DeepSeek 流式接口（Vercel serverless）
-├── api/health.js       # 健康检查
-├── server.example.js   # 本地开发服务器
-├── vercel.json         # 部署配置
-├── PRD_Notion.md       # 产品需求文档
-└── PROMPT_Optimization.md  # Prompt 迭代记录
-```
 
-## 边界声明
+## 技术方案
 
-本产品提供情绪支持，不替代心理咨询、精神科诊疗或紧急救助。用户表达自伤 / 自杀倾向时，系统会优先进入安全支持模式并引导联系现实帮助。
+- 前端：原生 HTML、CSS、JavaScript
+- 本地服务：Node.js
+- 模型接口：DeepSeek 流式 API
+- 部署：Vercel Serverless Functions 或 Render
+- 数据策略：无账号系统，不在浏览器中保存 API Key
+- 会话记忆：服务进程内短期记忆，支持过期与容量限制
+- 稳定性：超时控制、一次重试、本地回复回退
 
-## 作品集说明
+## 安全与使用边界
 
-详细的产品定位、闭环设计、Prompt 迭代记录、指标体系、关键产品决策，见网页内「关于」页（导航最后一项）。
+小树洞提供情绪支持，但不替代心理咨询、精神科诊疗或紧急救助。
+
+当用户表达自伤、自杀或现实危险倾向时，系统会优先进入安全支持路径，停止普通建议流程，并鼓励用户尽快联系可信任的人、专业机构或当地紧急服务。
